@@ -23,7 +23,7 @@ For development it is more convenient to use *Debug* mode, and for production it
 
 Text Discord channels are called nodes. You can connect the node using bot commands. Commands list:
 
- - ***!transmit setnode*** general global. Signature is !transmit setnode *discord_channel* *pachat_channel*.
+ - ***!transmit setnode*** general global. Signature is !transmit setnode *discord_channel* *pachat_channel* 1. "1" is used as mark for channel that can read&write to system.
  - ***!transmit deletenode*** general. Signature is !transmit deletenode *discord_channel*.
  
 You can use any discord channel name that exist on your discord server.
