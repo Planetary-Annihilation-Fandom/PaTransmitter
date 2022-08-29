@@ -76,4 +76,4 @@ sudo systemctl restart patransmitter.service (restarts the service)
 sudo systemctl status patransmitter.service (show status of the service)
 etc..
 ```
-
+- *REMEMBER* to set permissions for PaTransmitter.dll and databases/sqlite/transmitnodes to 777
