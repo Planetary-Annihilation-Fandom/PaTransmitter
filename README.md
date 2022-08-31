@@ -30,7 +30,7 @@ Text Discord channels are called nodes. You can connect the node using bot comma
  
 You can use any discord channel name that exist on your discord server.
  
-Added nodes will be used immediately for forwarding messages. The added nodes will immediately be used to forward messages. Node data is stored in the sqlite database in the file *databases/sqlite/transmitnodes.db*
+Added nodes will be used immediately for forwarding messages. Node data is stored in the sqlite database in the file *databases/sqlite/transmitnodes.db*
 
 **Linux Setup (ubuntu)**
  - install dotnet6
