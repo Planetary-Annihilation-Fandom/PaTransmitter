@@ -1,9 +1,9 @@
 ﻿using Discord;
 using Discord.Commands;
+using Discord.Net;
 using Discord.WebSocket;
 using PaFandom.Code.Types;
 using PaTransmitter.Code.Discord;
-using PaTransmitter.Code.Models;
 
 namespace PaTransmitter.Code.Transport
 {
@@ -12,33 +12,33 @@ namespace PaTransmitter.Code.Transport
     /// </summary>
     public class DiscordBotRouter
     {
-        private readonly string Token;
+        private readonly string _token;
 
         /// <summary>
         /// Connection to discord server.
         /// </summary>
         private Option<DiscordSocketClient> _client;
 
-        // Not used externaly, but i cached it for GC clean avoiding purpose
+        // Not used externally, but i cached it for GC clean avoiding purpose
         private Option<CommandService> _commandService;
         private Option<CommandHandler> _commandHandler;
-
-        public ILogger Logger { get; set; }
-
+        
         /// <summary>
         /// How to post message in discord channels. Formatting.
         /// </summary>
-        public DiscordFunctions.ColorScheme ColorScheme { get; set; }
+        private readonly DiscordFunctions.ColorScheme _colorScheme;
+
+        public ILogger Logger { get; init; }
 
         /// <summary>
-        /// Fires event on message recieved from discord channel.
+        /// Fires event on message received from discord channel.
         /// </summary>
-        public event Action<SocketMessage> OnMessage = delegate { };
+        public event Action<SocketMessage> MessageReceived = delegate { };
 
         public DiscordBotRouter(string token)
         {
-            Token = token;
-            ColorScheme = DiscordFunctions.ColorScheme.Blue;
+            _token = token;
+            _colorScheme = DiscordFunctions.ColorScheme.Blue;
         }
 
         /// <summary>
@@ -50,58 +50,32 @@ namespace PaTransmitter.Code.Transport
                 throw new InvalidOperationException();
 
             _client = new DiscordSocketClient();
-            await _client.option.LoginAsync(TokenType.Bot, Token);
+            await _client.option.LoginAsync(TokenType.Bot, _token);
             await _client.option.StartAsync();
 
-            _client.option.Ready += OnClientReady;
+            _client.option.Ready += InitializeCommandsService;
+            _client.option.MessageReceived += RethrowMessage;
 
             await Task.Delay(-1);
         }
 
-        private async Task HandleMessage(SocketMessage msg)
+        public void DisconnectFromDiscordApi()
         {
-            if (msg.Author.Id == _client.option.CurrentUser.Id)
+            if (_client) 
                 return;
-
-            if (msg.Content[0] == '!')
-                return;
-
-            Logger.LogInformation($"discord - {msg.Author.Username}: {msg.Content} - channel id = {msg.Channel.Id}");
-            OnMessage?.Invoke(msg);
+            
+            _client.option.Ready -= InitializeCommandsService;
+            _client.option.MessageReceived -= RethrowMessage;
+            
+            // Clear all subscribers.
+            MessageReceived = delegate {};
         }
-
-        public async Task SendMessage(ulong serverId, ulong channelId, string username, string text)
-        {
-            await SendMessage(serverId, channelId, username, text, ColorScheme);
-        }
-
-        public async Task SendMessage(ulong serverId, ulong channelId, string username, string text, DiscordFunctions.ColorScheme colorSheme)
-        {
-            await _client.option.GetGuild(serverId).GetTextChannel(channelId).SendMessageAsync(DiscordFunctions.FormatColorScheme(username, text, colorSheme));
-        }
-
-        public async Task SendDirectMessage(ulong userId,string username, string text, DiscordFunctions.ColorScheme colorSheme)
-        {
-            var user = _client.option.GetUser(userId);
-            try
-            {
-                await UserExtensions.SendMessageAsync(user, DiscordFunctions.FormatColorScheme(username, text, colorSheme));
-
-            }
-            // If user blocked bot or something else like that.
-            catch (Exception ex)
-            {
-                Logger.LogWarning(ex.Message);
-            }
-        }
-
+        
         /// <summary>
         /// Initialize command handler and service.
         /// </summary>
-        private async Task OnClientReady()
+        private async Task InitializeCommandsService()
         {
-            _client.option.MessageReceived += HandleMessage;
-
             var commandService = new CommandService();
             var commandHandler = new CommandHandler(_client, commandService);
 
@@ -110,26 +84,74 @@ namespace PaTransmitter.Code.Transport
 
             await commandHandler.InstallCommandsAsync();
         }
-    }
 
-    public class DiscordFunctions
-    {
-        public static string FormatColorScheme(string username, string text, ColorScheme scheme = ColorScheme.Orange)
+        private Task RethrowMessage(SocketMessage msg)
         {
-            var formattedText = scheme switch
-            {
-                ColorScheme.Blue => $"```ini\n [{username}] {text}\n```",
-                ColorScheme.Orange => $"```css\n [{username}] {text}\n```",
-                _ => throw new NotImplementedException()
-            };
+            // if author is This bot
+            if (msg.Author.Id == _client.option.CurrentUser.Id)
+                return Task.CompletedTask;
 
-            return formattedText;
+            // if message is command
+            if (msg.Content[0] == '!')
+                return Task.CompletedTask;
+            
+            Logger.LogInformation("Discord: [{Username}] {Content} [in] {Name}",
+                msg.Author.Username, msg.Content, msg.Channel.Name);
+            
+            MessageReceived(msg);
+            return Task.CompletedTask;
         }
 
-        public enum ColorScheme
+        public async Task SendMessageToChat(ulong serverId, ulong channelId, string username, string text)
         {
-            Blue, // ```ini [___] ___```
-            Orange, // ```css [___] ___``` 
+            await SendMessageToChat(serverId, channelId, username, text, _colorScheme);
+        }
+
+        public async Task SendMessageToDirect(ulong userId,string username, string text)
+        {
+            var user = _client.option.GetUser(userId);
+            try
+            {
+                await user.SendMessageAsync(DiscordFunctions.FormatColorScheme(username, text,
+                    DiscordFunctions.ColorScheme.Orange));
+            }
+            // If user blocked bot or something else like that.
+            catch (HttpException)
+            {
+                Logger.LogWarning("User {UserUsername} cannot accept direct message", user.Username);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex.Message);
+            }
+        }
+        
+        private async Task SendMessageToChat(ulong serverId, ulong channelId, string username, string text, DiscordFunctions.ColorScheme colorScheme)
+        {
+            await _client.option
+                .GetGuild(serverId)
+                .GetTextChannel(channelId)
+                .SendMessageAsync(DiscordFunctions.FormatColorScheme(username, text, colorScheme));
+        }
+        
+        public static class DiscordFunctions
+        {
+            public static string FormatColorScheme(string username, string text, ColorScheme scheme)
+            {
+                var formattedText = scheme switch
+                {
+                    ColorScheme.Blue => $"```ini\n [{username}] {text}\n```",
+                    ColorScheme.Orange => $"```css\n [{username}] {text}\n```",
+                    _ => $"[{username}] {text}"
+                };
+                return formattedText;
+            }
+
+            public enum ColorScheme
+            {
+                Blue, // ```ini [___] ___```
+                Orange, // ```css [___] ___``` 
+            }
         }
     }
 }

@@ -5,11 +5,18 @@
     <projectFile profileName="PaTransmitter">PaTransmitter/PaTransmitter.csproj</projectFile>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="745be594-c4ef-432d-b901-c2b8db7e9d5b" name="Changes" comment="" />
+    <list default="true" id="745be594-c4ef-432d-b901-c2b8db7e9d5b" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.PaTransmitter/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.PaTransmitter/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/PaTransmitter/Code/Transport/DiscordBotRouter.cs" beforeDir="false" afterPath="$PROJECT_DIR$/PaTransmitter/Code/Transport/DiscordBotRouter.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/PaTransmitter/Code/Transport/TransportsManager.cs" beforeDir="false" afterPath="$PROJECT_DIR$/PaTransmitter/Code/Transport/TransportsManager.cs" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="mock://C:/Users/DNS/RiderProjects/PaTransmitter-Fandom-Org/PaTransmitter/Code/Transport/DiscordBotRouter.cs" root0="SKIP_HIGHLIGHTING" />
   </component>
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
@@ -20,15 +27,15 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "WebServerToolWindowFactoryState": "false",
-    "settings.editor.selected.configurable": "project.propVCSSupport.DirectoryMappings",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;project.propVCSSupport.DirectoryMappings&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RunManager" selected=".NET Launch Settings Profile.PaTransmitter">
     <configuration name="PaTransmitter" type="LaunchSettings" factoryName=".NET Launch Settings Profile">
       <option name="LAUNCH_PROFILE_PROJECT_FILE_PATH" value="$PROJECT_DIR$/PaTransmitter/PaTransmitter.csproj" />
@@ -70,8 +77,18 @@
       <option name="presentableId" value="Default" />
       <updated>1661754248759</updated>
       <workItem from="1661754263142" duration="16000" />
-      <workItem from="1661754316735" duration="11000" />
+      <workItem from="1661754316735" duration="64000" />
+      <workItem from="1662115178824" duration="181000" />
+      <workItem from="1662115396701" duration="5483000" />
     </task>
+    <task id="LOCAL-00001" summary="Initialize fandom git">
+      <created>1661754375161</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1661754375161</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -95,5 +112,7 @@
       <path value="$PROJECT_DIR$" />
     </ignored-roots>
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
+    <MESSAGE value="Initialize fandom git" />
+    <option name="LAST_COMMIT_MESSAGE" value="Initialize fandom git" />
   </component>
 </project>

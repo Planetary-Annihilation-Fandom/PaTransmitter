@@ -112,7 +112,7 @@ namespace PaTransmitter.Code.Transport
             _nodesDb = db;
             Nodes = _nodesDb.option.Nodes.ToList();
 
-            _discordBotRouter.option.OnMessage += TransmitDiscordToPA;
+            _discordBotRouter.option.MessageReceived += TransmitDiscordToPA;
 
             _paChatRouter.option.OnBox += TransmitPAToDiscord;
             _paChatRouter.option.OnDirectBoxFromAdministration += TransmitPAToDiscordUser;
@@ -166,7 +166,7 @@ namespace PaTransmitter.Code.Transport
                 var username = dmsg.Author.Username;
                 var message = dmsg.CleanContent;
 
-                Task.Run(() => _discordBotRouter.option.SendMessage(serverId, channelId, username, message));
+                Task.Run(() => _discordBotRouter.option.SendMessageToChat(serverId, channelId, username, message));
             }
         }
 
@@ -183,7 +183,7 @@ namespace PaTransmitter.Code.Transport
                 var username = box.UserName;
                 var message = box.Text;
 
-                Task.Run(() => _discordBotRouter.option.SendMessage(serverId, channelId, username, message));
+                Task.Run(() => _discordBotRouter.option.SendMessageToChat(serverId, channelId, username, message));
             }
         }
 
@@ -192,7 +192,7 @@ namespace PaTransmitter.Code.Transport
         /// </summary>
         private void TransmitPAToDiscordUser(Box box, ulong targetId)
         {
-            Task.Run(() => _discordBotRouter.option.SendDirectMessage(targetId, box.UserName, box.Text, DiscordFunctions.ColorScheme.Orange));
+            Task.Run(() => _discordBotRouter.option.SendMessageToDirect(targetId, box.UserName, box.Text));
         }
     }
 }
