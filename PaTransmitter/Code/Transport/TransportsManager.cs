@@ -1,4 +1,5 @@
-﻿using Discord.WebSocket;
+﻿using System.Collections.Immutable;
+using Discord.WebSocket;
 using PaFandom.Code.Types;
 using PaTransmitter.Code.Models;
 using PaTransmitter.Code.Services;
@@ -15,28 +16,24 @@ namespace PaTransmitter.Code.Transport
         /// <summary>
         /// Responsible for receiving and transmitting messages from the Game chat server.
         /// </summary>
-        private Option<PaChatRouter> _paChatRouter;
+        private PaChatRouter _paChatRouter;
         /// <summary>
         /// Responsible for receiving and transmitting messages from the Discord server.
         /// </summary>
-        private Option<DiscordBotRouter> _discordBotRouter;
+        private DiscordBotRouter _discordBotRouter;
 
         /// <summary>
         /// Database EntityFramework interface.
         /// </summary>
-        private Option<TransmitNodeContext> _nodesDb;
+        private TransmitNodeContext? _nodesDb;
 
-        /// <summary>
-        /// Initialized list of transmit nodes from _nodesDb. 
-        /// </summary>
-        private List<TransmitNode> Nodes = new List<TransmitNode>();
-
-        public IReadOnlyList<TransmitNode> ReadonlyNodes => Nodes.AsReadOnly();
+        public IReadOnlyList<TransmitNode> ReadonlyNodes => _nodesDb?.Nodes.ToImmutableList() ??
+                                                            ImmutableList<TransmitNode>.Empty;
 
         public Task InitializeTransports(WebApplication app)
         {
             // If already exist.
-            if (_paChatRouter || _discordBotRouter)
+            if (_paChatRouter!=null || _discordBotRouter!=null)
                 throw new InvalidOperationException();
 
             var logger = app.Logger;
@@ -61,7 +58,7 @@ namespace PaTransmitter.Code.Transport
                 //throw new Exception("Setup credentials in" + file.Content);
             }
 
-            logger.LogInformation("Credentials has readed.");
+            logger.LogInformation("Credentials has read");
 
             _paChatRouter = new PaChatRouter(apikey, apisecret, signalrUrl)
             { Logger = logger };
@@ -71,8 +68,8 @@ namespace PaTransmitter.Code.Transport
 
             SetupRoutes();
 
-            Task.Run(_paChatRouter.option.ConnectToApi);
-            Task.Run(_discordBotRouter.option.ConnectToDiscordApi);
+            Task.Run(_paChatRouter.ConnectToApi);
+            Task.Run(_discordBotRouter.ConnectToApi);
 
             return Task.CompletedTask;
         }
@@ -82,9 +79,11 @@ namespace PaTransmitter.Code.Transport
         /// </summary>
         public void SetNode(TransmitNode node)
         {
-            Nodes.Add(node);
-            _nodesDb.option.Add(node);
-            _nodesDb.option.SaveChanges();
+            if (_nodesDb == null)
+                throw new InvalidOperationException();
+            
+            _nodesDb.Add(node);
+            _nodesDb.SaveChanges();
         }
 
         /// <summary>
@@ -92,13 +91,14 @@ namespace PaTransmitter.Code.Transport
         /// </summary>
         public void DeleteNode(ulong channelId)
         {
-            Nodes.RemoveAll(x => x.ChannelId == channelId);
-
-            var node = _nodesDb.option.Nodes.FirstOrDefault(x=>x.ChannelId == channelId);
+            if (_nodesDb == null)
+                throw new InvalidOperationException();
+            
+            var node = _nodesDb.Nodes.FirstOrDefault(x=>x.ChannelId == channelId);
             if(node != null)
             {
-                _nodesDb.option.Nodes.Remove(node);
-                _nodesDb.option.SaveChanges(true);
+                _nodesDb.Nodes.Remove(node);
+                _nodesDb.SaveChanges(true);
             }
             
         }
@@ -108,45 +108,43 @@ namespace PaTransmitter.Code.Transport
         /// </summary>
         private void SetupRoutes()
         {
-            var db = new TransmitNodeContext();
-            _nodesDb = db;
-            Nodes = _nodesDb.option.Nodes.ToList();
+            _nodesDb?.Dispose();
+            _nodesDb = new TransmitNodeContext();
 
-            _discordBotRouter.option.MessageReceived += TransmitDiscordToPA;
+            _discordBotRouter.Received += TransmitDiscord;
 
-            _paChatRouter.option.Received += TransmitPAToDiscord;
-            _paChatRouter.option.ReceivedFromAdministration += TransmitPAToDiscordUser;
+            _paChatRouter.Received += TransmitPa;
+            _paChatRouter.ReceivedFromAdministration += TransmitPaToUser;
         }
 
         /// <summary>
         /// Forwarding messages from discord to the game.
         /// </summary>
-        private void TransmitDiscordToPA(SocketMessage dmsg)
+        private void TransmitDiscord(SocketMessage discordMessage)
         {
-            var serverId = (dmsg.Channel as SocketGuildChannel).Guild.Id;
-            var channelId = dmsg.Channel.Id;
+            if (_nodesDb == null)
+                throw new InvalidOperationException();
+            
+            var serverId = (discordMessage.Channel as SocketGuildChannel)!.Guild.Id;
+            var channelId = discordMessage.Channel.Id;
             
             // If node with that server and channel exist.
-            var node = Nodes.FirstOrDefault(x=>x.ServerId == serverId && x.ChannelId == channelId);
+            var node = _nodesDb.Nodes.FirstOrDefault(x=>x.ServerId == serverId && x.ChannelId == channelId);
             if (node != null)
             {
                 if (node.Option == NodeOption.Read)
                     return;
 
-                TransmitDiscordToDiscords(node, dmsg);
+                TransmitDiscordToDiscords(node, discordMessage);
 
                 var externalMsg = new ExternalMessage()
                 {
-                    PlayerId = dmsg.Author.Id.ToString(),//discord user id
-                    PlayerName = $"{dmsg.Author.Username}",//discord displayname
-                    Text = dmsg.CleanContent,
+                    PlayerId = discordMessage.Author.Id.ToString(),//discord user id
+                    PlayerName = $"{discordMessage.Author.Username}",//discord display name
+                    Text = discordMessage.CleanContent,
                 };
 
-                _paChatRouter.option.PullMessage(externalMsg);
-            }
-            else
-            {
-                return;
+                _paChatRouter.PullMessage(externalMsg);
             }
         }
 
@@ -155,7 +153,10 @@ namespace PaTransmitter.Code.Transport
         /// </summary>
         private void TransmitDiscordToDiscords(TransmitNode exceptNode,SocketMessage dmsg)
         {
-            foreach (var node in Nodes)
+            if (_nodesDb == null)
+                throw new InvalidOperationException();
+            
+            foreach (var node in _nodesDb.Nodes)
             {
                 if (node == exceptNode)
                     continue;
@@ -166,16 +167,19 @@ namespace PaTransmitter.Code.Transport
                 var username = dmsg.Author.Username;
                 var message = dmsg.CleanContent;
 
-                Task.Run(() => _discordBotRouter.option.SendMessageToChat(serverId, channelId, username, message));
+                Task.Run(() => _discordBotRouter.SendChat(serverId, channelId, username, message));
             }
         }
 
         /// <summary>
         /// Forwarding messages from the game to all Discord nodes (channels).
         /// </summary>
-        private void TransmitPAToDiscord(Package package)
+        private void TransmitPa(Package package)
         {
-            foreach(var node in Nodes)
+            if (_nodesDb == null)
+                throw new InvalidOperationException();
+            
+            foreach(var node in _nodesDb.Nodes)
             {
                 var serverId = node.ServerId;
                 var channelId = node.ChannelId;
@@ -183,16 +187,16 @@ namespace PaTransmitter.Code.Transport
                 var username = package.UserName;
                 var message = package.Text;
 
-                Task.Run(() => _discordBotRouter.option.SendMessageToChat(serverId, channelId, username, message));
+                Task.Run(() => _discordBotRouter.SendChat(serverId, channelId, username, message));
             }
         }
 
         /// <summary>
-        /// Direct message obviously sended from Administration.
+        /// Direct message obviously send from Administration.
         /// </summary>
-        private void TransmitPAToDiscordUser(Package package, ulong targetId)
+        private void TransmitPaToUser(Package package, ulong targetId)
         {
-            Task.Run(() => _discordBotRouter.option.SendMessageToDirect(targetId, package.UserName, package.Text));
+            Task.Run(() => _discordBotRouter.SendDirect(targetId, package.UserName, package.Text));
         }
     }
 }

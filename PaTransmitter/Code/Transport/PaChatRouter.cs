@@ -93,9 +93,17 @@ namespace PaTransmitter.Code.Transport
         /// </summary>
         public async Task ConnectToApi()
         {
-            // If already exist.
-            if (_connection != null || _hub != null)
-                throw new InvalidOperationException();
+            if (_connection != null)
+            {
+                Logger.LogInformation("Trying to connect when connection already created.");
+                if (_connection.State == ConnectionState.Connected)
+                    return;
+                Received = delegate { };
+                ReceivedFromAdministration = delegate { };
+                _connection.Dispose();
+                _connection = null;
+                _hub = null;
+            }
 
             _connection = new HubConnection(_apiUrl);
             // Auth

@@ -17,7 +17,7 @@ namespace PaTransmitter.Code.Transport
         /// <summary>
         /// Connection to discord server.
         /// </summary>
-        private Option<DiscordSocketClient> _client;
+        private DiscordSocketClient? _client;
 
         // Not used externally, but i cached it for GC clean avoiding purpose
         private Option<CommandService> _commandService;
@@ -33,7 +33,7 @@ namespace PaTransmitter.Code.Transport
         /// <summary>
         /// Fires event on message received from discord channel.
         /// </summary>
-        public event Action<SocketMessage> MessageReceived = delegate { };
+        public event Action<SocketMessage> Received = delegate { };
 
         public DiscordBotRouter(string token)
         {
@@ -44,31 +44,27 @@ namespace PaTransmitter.Code.Transport
         /// <summary>
         /// Initializes the discord client and events.
         /// </summary>
-        public async Task ConnectToDiscordApi()
+        public async Task ConnectToApi()
         {
-            if(_client)
-                throw new InvalidOperationException();
-
+            if (_client != null)
+            {
+                if(_client.ConnectionState == ConnectionState.Connected)
+                    return;
+                
+                Received = delegate {};
+                
+                await _client.DisposeAsync();
+                _client = null;
+            }
+            
             _client = new DiscordSocketClient();
-            await _client.option.LoginAsync(TokenType.Bot, _token);
-            await _client.option.StartAsync();
+            await _client.LoginAsync(TokenType.Bot, _token);
+            await _client.StartAsync();
 
-            _client.option.Ready += InitializeCommandsService;
-            _client.option.MessageReceived += RethrowMessage;
+            _client.Ready += InitializeCommandsService;
+            _client.MessageReceived += RethrowMessage;
 
             await Task.Delay(-1);
-        }
-
-        public void DisconnectFromDiscordApi()
-        {
-            if (_client) 
-                return;
-            
-            _client.option.Ready -= InitializeCommandsService;
-            _client.option.MessageReceived -= RethrowMessage;
-            
-            // Clear all subscribers.
-            MessageReceived = delegate {};
         }
         
         /// <summary>
@@ -88,7 +84,7 @@ namespace PaTransmitter.Code.Transport
         private Task RethrowMessage(SocketMessage msg)
         {
             // if author is This bot
-            if (msg.Author.Id == _client.option.CurrentUser.Id)
+            if (msg.Author.Id == _client.CurrentUser.Id)
                 return Task.CompletedTask;
 
             // if message is command
@@ -98,18 +94,18 @@ namespace PaTransmitter.Code.Transport
             Logger.LogInformation("Discord: [{Username}] {Content} [in] {Name}",
                 msg.Author.Username, msg.Content, msg.Channel.Name);
             
-            MessageReceived(msg);
+            Received(msg);
             return Task.CompletedTask;
         }
 
-        public async Task SendMessageToChat(ulong serverId, ulong channelId, string username, string text)
+        public async Task SendChat(ulong serverId, ulong channelId, string username, string text)
         {
-            await SendMessageToChat(serverId, channelId, username, text, _colorScheme);
+            await SendChat(serverId, channelId, username, text, _colorScheme);
         }
 
-        public async Task SendMessageToDirect(ulong userId,string username, string text)
+        public async Task SendDirect(ulong userId,string username, string text)
         {
-            var user = _client.option.GetUser(userId);
+            var user = _client.GetUser(userId);
             try
             {
                 await user.SendMessageAsync(DiscordFunctions.FormatColorScheme(username, text,
@@ -126,9 +122,9 @@ namespace PaTransmitter.Code.Transport
             }
         }
         
-        private async Task SendMessageToChat(ulong serverId, ulong channelId, string username, string text, DiscordFunctions.ColorScheme colorScheme)
+        private async Task SendChat(ulong serverId, ulong channelId, string username, string text, DiscordFunctions.ColorScheme colorScheme)
         {
-            await _client.option
+            await _client
                 .GetGuild(serverId)
                 .GetTextChannel(channelId)
                 .SendMessageAsync(DiscordFunctions.FormatColorScheme(username, text, colorScheme));
