@@ -62,7 +62,7 @@ namespace PaTransmitter.Code.Transport
                 // Send messages with interval if connection exist. Otherwise 
                 while (true)
                 {
-                    // checking for null and property
+                    // Checking for null and property
                     if(_connection is { State: ConnectionState.Connected })
                     {
                         if (!_messageQueue.IsEmpty)
@@ -70,7 +70,9 @@ namespace PaTransmitter.Code.Transport
                             ExternalMessage message;
                             var success = _messageQueue.TryDequeue(out message);
                             if (success)
-                                await SendMessageInternal(message);
+                            {
+                                await SendMessageToServer(message);
+                            }
                         }
                         // Make delay to reduce cpu usage.
                         await Task.Delay(LoopDelayMilliseconds);
@@ -100,91 +102,112 @@ namespace PaTransmitter.Code.Transport
             _connection.Headers.Add("ApiKey", _apiKey);
             _connection.Headers.Add("ApiSecret", _apiSecret);
             // Events
-            _connection.Reconnecting += OnReconnectingToPachat;
-            _connection.Reconnected += OnReconnectedToPachat;
-            _connection.Closed += OnConnectionClosed;
-            _connection.Error += OnConnectionError;
+            _connection.Reconnecting += Reconnecting;
+            _connection.Reconnected += Reconnected;
+            _connection.Closed += Closed;
+            _connection.Error += Error;
 
             // Handle messages from server.
             // SendMessage is an event name defined on PaChat side.
             _hub = _connection.CreateHubProxy("chathub");
-            _hub.On<string, Message>("SendMessage", ReciveMessage);
+            _hub.On<string, Message>("SendMessage", ReceiveMessage);
 
-            await _connection.Start();
+            while (true)
+            {
+                try
+                {
+                    Logger.LogInformation("Starting connection");
+                    await _connection.Start();
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError("Error in ConnectToApi from PaChatRouter: {Exception}", ex.Message);
+                    Logger.LogInformation("Trying to wait and start connection again");
+                    await Task.Delay(LoopDelayMilliseconds * 2);
+                }
+            }
+            
         }
 
-        private void OnConnectionError(Exception obj)
+        private void Error(Exception obj)
         {
             Logger.LogError("{ConnectionError}", obj.Message);
         }
 
-        private void OnConnectionClosed()
+        private void Closed()
         {
-            Logger.LogError("Connection closed");
-            ReconnectToPachatManually();
+            Logger.LogWarning("Connection closed");
+            ReconnectToServer();
         }
 
-        private void OnReconnectedToPachat()
+        private void Reconnected()
         {
             Logger.LogWarning("Successfully reconnected to server");
         }
 
-        private void OnReconnectingToPachat()
+        private void Reconnecting()
         {
-            Logger.LogWarning("Standard reconnecting to server");
+            Logger.LogWarning("Automatic reconnect to server");
         }
 
         /// <summary>
         /// Start reconnection with recreating connection and hub.
         /// </summary>
-        private void ReconnectToPachatManually()
-        {
+        private void ReconnectToServer()
+        {   
+            Logger.LogWarning("Trying reconnect manually!");
+            // We don't need to unsubscribe from connection events, cause old instance disposes by gc when set to null.
             _connection = null;
             _hub = null;
-            // TODO: продолжить рефакторинг
-            Logger.LogWarning("Trying reconnect manually!");
 
-            ConnectToApi();
+            Task.Run(ConnectToApi);
         }
 
         /// <summary>
         /// Send messages to pachat.
         /// </summary>
-        public void SendMessage(ExternalMessage message)
+        public void PullMessage(ExternalMessage message)
         {
             // Adding message to queue.
             _messageQueue.Enqueue(message);
         }
 
-        private async Task SendMessageInternal(ExternalMessage msg)
+        private async Task SendMessageToServer(ExternalMessage msg)
         {
+            if (_hub is null)
+            {
+                Logger.LogError("Trying to send message to pachat when signalR hub is null");
+                return;
+            }
             // Call server method with message argument.
             await _hub.Invoke("PushExternalMessage", "Global",msg);
         }
 
-        private void ReciveMessage(string channel, Message message)
+        private void ReceiveMessage(string channel, Message message)
         {
             // If we send this message.
             if (message.Source == _apiKey)
                 return;
 
-            // If server specify user. Obviously this used when server spam protecting.
+            // If server specify user. Obviously this used when server spam protecting works.
             if (!string.IsNullOrWhiteSpace(message.TargetUserId))
             {
                 var box = Box.CreateBox(Box.Origins.GameChatAdministration, "none", "none",
                     CommunityConsts.GameChatAdministrator, message.Text, DateTime.Now);
-
-                OnDirectBoxFromAdministration?.Invoke(box, ulong.Parse(message.TargetUserId));
+                
+                OnDirectBoxFromAdministration(box, ulong.Parse(message.TargetUserId));
                 return;
             }
+            //
+            // Logger.LogInformation("Discord: [{Username}] {Content} [in] {Name}",
+            //     msg.Author.Username, msg.Content, msg.Channel.Name);
 
-#if DEBUG
-            Logger.LogInformation(
-                $"pachat - {message.TimeStamp.Value.Hour}:{message.TimeStamp.Value.Minute} {message.PlayerName}: {message.Text} : source -{message.Source}");
-
-#endif
-
-            OnBox?.Invoke(Box.CreateBox(Box.Origins.GameChat, message.ChannelName, message.UberId, message.PlayerName, message.Text, message.TimeStamp));
+            Logger.LogInformation("Discord: [{Username}] {Content} [in] {Name}",
+                message.PlayerName, message.Text, "global");
+            
+            OnBox(Box.CreateBox(Box.Origins.GameChat, message.ChannelName,
+                message.UberId, message.PlayerName, message.Text, message.TimeStamp));
         }
     }
 }

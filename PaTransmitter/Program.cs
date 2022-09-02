@@ -23,6 +23,7 @@ builder.Services.AddLogging(config =>
 
 #endif
 });
+
 var app = builder.Build();
 
 app.UseStaticFiles();

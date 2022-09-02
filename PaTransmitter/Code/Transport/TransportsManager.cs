@@ -142,7 +142,7 @@ namespace PaTransmitter.Code.Transport
                     Text = dmsg.CleanContent,
                 };
 
-                _paChatRouter.option.SendMessage(externalMsg);
+                _paChatRouter.option.PullMessage(externalMsg);
             }
             else
             {
