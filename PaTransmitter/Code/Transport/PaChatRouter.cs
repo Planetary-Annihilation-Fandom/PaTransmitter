@@ -84,7 +84,7 @@ namespace PaTransmitter.Code.Transport
             }
             catch(Exception ex)
             {
-                Logger.LogError("[PaRouter] Exception in send loop: {Exception}", ex.Message);
+                Logger.LogError("[Pachat] Exception in send loop: {Exception}", ex.Message);
             }
         }
 
@@ -95,7 +95,7 @@ namespace PaTransmitter.Code.Transport
         {
             if (_connection != null)
             {
-                Logger.LogInformation("Trying to connect when connection already created.");
+                Logger.LogInformation("[Pachat] Trying to connect when connection already created.");
                 if (_connection.State == ConnectionState.Connected)
                     return;
                 Received = delegate { };
@@ -124,14 +124,14 @@ namespace PaTransmitter.Code.Transport
             {
                 try
                 {
-                    Logger.LogInformation("Starting connection");
+                    Logger.LogInformation("[Pachat] Starting connection to server");
                     await _connection.Start();
                     return;
                 }
                 catch (Exception ex)
                 {
-                    Logger.LogError("Error in ConnectToApi from PaChatRouter: {Exception}", ex.Message);
-                    Logger.LogInformation("Trying to wait and start connection again");
+                    Logger.LogError("[Pachat] Error in ConnectToApi from PaChatRouter: {Exception}", ex.Message);
+                    Logger.LogInformation("[Pachat] Trying to wait and start connection again");
                     await Task.Delay(LoopDelayMilliseconds * 2);
                 }
             }
@@ -145,18 +145,18 @@ namespace PaTransmitter.Code.Transport
 
         private void Closed()
         {
-            Logger.LogWarning("Connection closed");
+            Logger.LogWarning("[Pachat] Connection closed");
             ReconnectToServer();
         }
 
         private void Reconnected()
         {
-            Logger.LogWarning("Successfully reconnected to server");
+            Logger.LogWarning("[Pachat] Successfully reconnected to server");
         }
 
         private void Reconnecting()
         {
-            Logger.LogWarning("Automatic reconnect to server");
+            Logger.LogWarning("[Pachat] Automatic reconnect to server");
         }
 
         /// <summary>
@@ -164,7 +164,7 @@ namespace PaTransmitter.Code.Transport
         /// </summary>
         private void ReconnectToServer()
         {   
-            Logger.LogWarning("Trying reconnect manually!");
+            Logger.LogWarning("[Pachat] Trying reconnect manually!");
             // We don't need to unsubscribe from connection events, cause old instance disposes by gc when set to null.
             _connection = null;
             _hub = null;
@@ -185,7 +185,7 @@ namespace PaTransmitter.Code.Transport
         {
             if (_hub is null)
             {
-                Logger.LogError("Trying to send message to pachat when signalR hub is null");
+                Logger.LogError("[Pachat] Trying to send message to pachat when signalR hub is null");
                 return;
             }
             // Call server method with message argument.

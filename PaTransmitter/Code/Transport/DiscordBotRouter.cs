@@ -62,6 +62,7 @@ namespace PaTransmitter.Code.Transport
             await _client.StartAsync();
 
             _client.Ready += InitializeCommandsService;
+            _client.Ready += async () => Logger.LogInformation("[Discord] Connection to discord is ready");
             _client.MessageReceived += RethrowMessage;
 
             await Task.Delay(-1);
@@ -91,7 +92,7 @@ namespace PaTransmitter.Code.Transport
             if (msg.Content[0] == '!')
                 return Task.CompletedTask;
             
-            Logger.LogInformation("Discord: [{Username}] {Content} [in] {Name}",
+            Logger.LogInformation("[Discord-message] [{Username}] {Content} [in] {Name}",
                 msg.Author.Username, msg.Content, msg.Channel.Name);
             
             Received(msg);
@@ -114,7 +115,7 @@ namespace PaTransmitter.Code.Transport
             // If user blocked bot or something else like that.
             catch (HttpException)
             {
-                Logger.LogWarning("User {UserUsername} cannot accept direct message", user.Username);
+                Logger.LogWarning("[Discord] User {UserUsername} cannot accept direct message", user.Username);
             }
             catch (Exception ex)
             {
