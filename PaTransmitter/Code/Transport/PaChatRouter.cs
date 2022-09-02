@@ -12,27 +12,27 @@ namespace PaTransmitter.Code.Transport
     /// </summary>
     public class PaChatRouter
     {
-        public const int LoopDelayMilliseconds = 350;
+        private const int LoopDelayMilliseconds = 350;
 
-        private readonly string ApiKey;
-        private readonly string ApiSecret;
-        private readonly string ApiUrl;
+        private readonly string _apiKey;
+        private readonly string _apiSecret;
+        private readonly string _apiUrl;
 
         /// <summary>
         /// Connection to game chat server.
         /// </summary>
-        private Option<HubConnection> connection;
+        private HubConnection? _connection;
         /// <summary>
-        /// Interface for send and recieve messages.
+        /// Interface for send and receive messages.
         /// </summary>
-        private Option<IHubProxy> hub;
+        private IHubProxy? _hub;
 
         /// <summary>
         /// Messages needs to send.
         /// </summary>
-        private ConcurrentQueue<ExternalMessage> messagesToSend = new ConcurrentQueue<ExternalMessage>();
+        private readonly ConcurrentQueue<ExternalMessage> _messageQueue;
 
-        public ILogger Logger { get; set; }
+        public ILogger Logger { get; init; }
 
         /// <summary>
         /// Fires when new message appear in pachat. Box - program internal message format.
@@ -42,98 +42,96 @@ namespace PaTransmitter.Code.Transport
 
         public PaChatRouter(string apiKey, string apiSecret, string apiUrl)
         {
-            messagesToSend = new ConcurrentQueue<ExternalMessage>();
+            _messageQueue = new ConcurrentQueue<ExternalMessage>();
 
-            ApiKey = apiKey;
-            ApiSecret = apiSecret;
-            ApiUrl = apiUrl;
+            _apiKey = apiKey;
+            _apiSecret = apiSecret;
+            _apiUrl = apiUrl;
 
             // Run infinity loop that checks messages and sends them.
-            Task.Run(Update);
+            Task.Run(SendMessagesLoop);
         }
 
         /// <summary>
         /// Loop for sending messages.
         /// </summary>
-        private async Task Update()
+        private async Task SendMessagesLoop()
         {
             try
             {
                 // Send messages with interval if connection exist. Otherwise 
                 while (true)
                 {
-                    if(connection && connection.option.State == ConnectionState.Connected)
+                    // checking for null and property
+                    if(_connection is { State: ConnectionState.Connected })
                     {
-                        if (messagesToSend.Count > 0)
+                        if (!_messageQueue.IsEmpty)
                         {
                             ExternalMessage message;
-                            var success = messagesToSend.TryDequeue(out message);
+                            var success = _messageQueue.TryDequeue(out message);
                             if (success)
                                 await SendMessageInternal(message);
                         }
-
                         // Make delay to reduce cpu usage.
                         await Task.Delay(LoopDelayMilliseconds);
+                        continue;
                     }
-
-                    // Make delay to reduce cpu usage doubled.
+                    // Make delay to reduce cpu usage doubled if no messages sent.
                     await Task.Delay(LoopDelayMilliseconds*2);
                 }
             }
             catch(Exception ex)
             {
-                Logger.LogError(ex.Message);
+                Logger.LogError("[PaRouter] Exception in send loop: {Exception}", ex.Message);
             }
         }
 
         /// <summary>
         /// Connecting to a game chat server.
         /// </summary>
-        public void ConnectToApi()
+        public async Task ConnectToApi()
         {
             // If already exist.
-            if (connection || hub)
+            if (_connection != null || _hub != null)
                 throw new InvalidOperationException();
 
-            
-            connection = new HubConnection(ApiUrl);
-            connection.option.Headers.Add("ApiKey", ApiKey);
-            connection.option.Headers.Add("ApiSecret", ApiSecret);
+            _connection = new HubConnection(_apiUrl);
+            // Auth
+            _connection.Headers.Add("ApiKey", _apiKey);
+            _connection.Headers.Add("ApiSecret", _apiSecret);
+            // Events
+            _connection.Reconnecting += OnReconnectingToPachat;
+            _connection.Reconnected += OnReconnectedToPachat;
+            _connection.Closed += OnConnectionClosed;
+            _connection.Error += OnConnectionError;
 
-            connection.option.Reconnecting += OnReconnectingToPachat;
-            connection.option.Reconnected += OnReconnectedToPachat;
-
-            connection.option.Closed += OnConnectionClosed;
-            connection.option.Error += OnConnectionError;
-
-            // Server connection lobby for this program.
-            hub = new Option<IHubProxy>(connection.option.CreateHubProxy("chathub"));
             // Handle messages from server.
-            hub.option.On<string, Message>("SendMessage", ReciveMessage);
+            // SendMessage is an event name defined on PaChat side.
+            _hub = _connection.CreateHubProxy("chathub");
+            _hub.On<string, Message>("SendMessage", ReciveMessage);
 
-            // Connecting.
-            connection.option.Start().Wait();
+            await _connection.Start();
         }
 
         private void OnConnectionError(Exception obj)
         {
-            Logger.LogError(obj.Message);
+            Logger.LogError("{ConnectionError}", obj.Message);
         }
 
         private void OnConnectionClosed()
         {
-            Logger.LogError("Connection closed.");
+            Logger.LogError("Connection closed");
             ReconnectToPachatManually();
         }
 
         private void OnReconnectedToPachat()
         {
-            Logger.LogWarning("Successfully reconnected to server!");
+            Logger.LogWarning("Successfully reconnected to server");
         }
 
         private void OnReconnectingToPachat()
         {
-            Logger.LogWarning("Standart reconnecting to server.");
+            Logger.LogWarning("Standard reconnecting to server");
         }
 
         /// <summary>
@@ -141,9 +139,9 @@ namespace PaTransmitter.Code.Transport
         /// </summary>
         private void ReconnectToPachatManually()
         {
-            connection = Option<HubConnection>.None;
-            hub = Option<IHubProxy>.None;
-
+            _connection = null;
+            _hub = null;
+            // TODO: продолжить рефакторинг
             Logger.LogWarning("Trying reconnect manually!");
 
             ConnectToApi();
@@ -155,19 +153,19 @@ namespace PaTransmitter.Code.Transport
         public void SendMessage(ExternalMessage message)
         {
             // Adding message to queue.
-            messagesToSend.Enqueue(message);
+            _messageQueue.Enqueue(message);
         }
 
         private async Task SendMessageInternal(ExternalMessage msg)
         {
             // Call server method with message argument.
-            await hub.option.Invoke("PushExternalMessage", "Global",msg);
+            await _hub.Invoke("PushExternalMessage", "Global",msg);
         }
 
         private void ReciveMessage(string channel, Message message)
         {
             // If we send this message.
-            if (message.Source == ApiKey)
+            if (message.Source == _apiKey)
                 return;
 
             // If server specify user. Obviously this used when server spam protecting.
