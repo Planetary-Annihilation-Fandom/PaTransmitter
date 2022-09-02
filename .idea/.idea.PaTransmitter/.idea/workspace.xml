@@ -5,12 +5,10 @@
     <projectFile profileName="PaTransmitter">PaTransmitter/PaTransmitter.csproj</projectFile>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="745be594-c4ef-432d-b901-c2b8db7e9d5b" name="Changes" comment="Refactored DiscordBotRouter.cs to be more readable">
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.PaTransmitter/.idea/.name" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.PaTransmitter/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.PaTransmitter/.idea/workspace.xml" afterDir="false" />
+    <list default="true" id="745be594-c4ef-432d-b901-c2b8db7e9d5b" name="Changes" comment="PaChatRouter.cs refactored">
+      <change beforePath="$PROJECT_DIR$/PaTransmitter/Code/Models/Box.cs" beforeDir="false" afterPath="$PROJECT_DIR$/PaTransmitter/Code/Models/Package.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/PaTransmitter/Code/Transport/PaChatRouter.cs" beforeDir="false" afterPath="$PROJECT_DIR$/PaTransmitter/Code/Transport/PaChatRouter.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/PaTransmitter/Code/Transport/TransportsManager.cs" beforeDir="false" afterPath="$PROJECT_DIR$/PaTransmitter/Code/Transport/TransportsManager.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/PaTransmitter/Program.cs" beforeDir="false" afterPath="$PROJECT_DIR$/PaTransmitter/Program.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -22,6 +20,10 @@
   </component>
   <component name="HighlightingSettingsPerFile">
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/8f1656152b8d82467fda2fa5d913010f8fcf54d692aed582a39117b6e892e5/Connection.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/ab9b3dcff4e15f47c7932bc6cd82bfe2cf2f6ddfbf484a7bc8277a11ed922c/TransportHelper.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/e38a5a99c3c72a91725314be857c3b2e25156ddf42fcc9e1661b778ae8c65/AutoTransport.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://C:/WorkRoot/Development/Projects/Trade Terminal/Test/PaTransmitter/PaTransmitter/Code/Transport/PaChatRouter.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://C:/WorkRoot/Development/Projects/Trade Terminal/Test/PaTransmitter/PaTransmitter/Program.cs" root0="SKIP_HIGHLIGHTING" />
   </component>
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
@@ -85,7 +87,7 @@
       <workItem from="1661754316735" duration="64000" />
       <workItem from="1662115178824" duration="181000" />
       <workItem from="1662115396701" duration="8747000" />
-      <workItem from="1662137196582" duration="4715000" />
+      <workItem from="1662137196582" duration="5307000" />
     </task>
     <task id="LOCAL-00001" summary="Initialize fandom git">
       <created>1661754375161</created>
@@ -101,7 +103,14 @@
       <option name="project" value="LOCAL" />
       <updated>1662123316440</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="PaChatRouter.cs refactored">
+      <created>1662144617738</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1662144617738</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -127,7 +136,8 @@
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
     <MESSAGE value="Initialize fandom git" />
     <MESSAGE value="Refactored DiscordBotRouter.cs to be more readable" />
-    <option name="LAST_COMMIT_MESSAGE" value="Refactored DiscordBotRouter.cs to be more readable" />
+    <MESSAGE value="PaChatRouter.cs refactored" />
+    <option name="LAST_COMMIT_MESSAGE" value="PaChatRouter.cs refactored" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

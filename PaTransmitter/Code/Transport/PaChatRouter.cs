@@ -37,8 +37,8 @@ namespace PaTransmitter.Code.Transport
         /// <summary>
         /// Fires when new message appear in pachat. Box - program internal message format.
         /// </summary>
-        public event Action<Box> OnBox = delegate { };
-        public event Action<Box, ulong> OnDirectBoxFromAdministration = delegate { };
+        public event Action<Package> Received = delegate { };
+        public event Action<Package, ulong> ReceivedFromAdministration = delegate { };
 
         public PaChatRouter(string apiKey, string apiSecret, string apiUrl)
         {
@@ -193,10 +193,10 @@ namespace PaTransmitter.Code.Transport
             // If server specify user. Obviously this used when server spam protecting works.
             if (!string.IsNullOrWhiteSpace(message.TargetUserId))
             {
-                var box = Box.CreateBox(Box.Origins.GameChatAdministration, "none", "none",
+                var package = Package.CreatePackage(Package.Origins.GameChatAdministration, "none", "none",
                     CommunityConsts.GameChatAdministrator, message.Text, DateTime.Now);
                 
-                OnDirectBoxFromAdministration(box, ulong.Parse(message.TargetUserId));
+                ReceivedFromAdministration(package, ulong.Parse(message.TargetUserId));
                 return;
             }
             //
@@ -206,7 +206,7 @@ namespace PaTransmitter.Code.Transport
             Logger.LogInformation("Discord: [{Username}] {Content} [in] {Name}",
                 message.PlayerName, message.Text, "global");
             
-            OnBox(Box.CreateBox(Box.Origins.GameChat, message.ChannelName,
+            Received(Package.CreatePackage(Package.Origins.GameChat, message.ChannelName,
                 message.UberId, message.PlayerName, message.Text, message.TimeStamp));
         }
     }

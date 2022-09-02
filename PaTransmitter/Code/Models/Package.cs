@@ -3,7 +3,7 @@
     /// <summary>
     /// Trasmitter universal message type used internally at the moment.
     /// </summary>
-    public partial class Box
+    public partial class Package
     {
         /// <summary>
         /// The service where the user entered this message.
@@ -38,11 +38,11 @@
     }
 
 
-    public partial class Box
+    public partial class Package
     {
-        public static Box CreateBox(string origin, string channel, string userId, string userName, string text, DateTime? timeStamp)
+        public static Package CreatePackage(string origin, string channel, string userId, string userName, string text, DateTime? timeStamp)
         {
-            return new Box()
+            return new Package()
             {
                 Origin = origin,
                 Channel = channel,
@@ -54,12 +54,12 @@
         }
     }
 
-    public partial class Box
+    public partial class Package
     {
         /// <summary>
         /// Origin constants and functions. 
         /// </summary>
-        public class Origins
+        public static class Origins
         {
             public const string GameChat = "game_c";
             public const string GameChatAdministration = "game_c_admin";

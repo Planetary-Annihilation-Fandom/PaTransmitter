@@ -114,8 +114,8 @@ namespace PaTransmitter.Code.Transport
 
             _discordBotRouter.option.MessageReceived += TransmitDiscordToPA;
 
-            _paChatRouter.option.OnBox += TransmitPAToDiscord;
-            _paChatRouter.option.OnDirectBoxFromAdministration += TransmitPAToDiscordUser;
+            _paChatRouter.option.Received += TransmitPAToDiscord;
+            _paChatRouter.option.ReceivedFromAdministration += TransmitPAToDiscordUser;
         }
 
         /// <summary>
@@ -173,15 +173,15 @@ namespace PaTransmitter.Code.Transport
         /// <summary>
         /// Forwarding messages from the game to all Discord nodes (channels).
         /// </summary>
-        private void TransmitPAToDiscord(Box box)
+        private void TransmitPAToDiscord(Package package)
         {
             foreach(var node in Nodes)
             {
                 var serverId = node.ServerId;
                 var channelId = node.ChannelId;
 
-                var username = box.UserName;
-                var message = box.Text;
+                var username = package.UserName;
+                var message = package.Text;
 
                 Task.Run(() => _discordBotRouter.option.SendMessageToChat(serverId, channelId, username, message));
             }
@@ -190,9 +190,9 @@ namespace PaTransmitter.Code.Transport
         /// <summary>
         /// Direct message obviously sended from Administration.
         /// </summary>
-        private void TransmitPAToDiscordUser(Box box, ulong targetId)
+        private void TransmitPAToDiscordUser(Package package, ulong targetId)
         {
-            Task.Run(() => _discordBotRouter.option.SendMessageToDirect(targetId, box.UserName, box.Text));
+            Task.Run(() => _discordBotRouter.option.SendMessageToDirect(targetId, package.UserName, package.Text));
         }
     }
 }
