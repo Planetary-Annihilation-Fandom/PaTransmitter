@@ -30,6 +30,8 @@ namespace PaTransmitter.Code.Transport
         public IReadOnlyList<TransmitNode> ReadonlyNodes => _nodesDb?.Nodes.ToImmutableList() ??
                                                             ImmutableList<TransmitNode>.Empty;
 
+        private ILogger Logger { get; set; }
+
         public Task InitializeTransports(WebApplication app)
         {
             // If already exist.
@@ -68,6 +70,8 @@ namespace PaTransmitter.Code.Transport
 
             _discordBotRouter = new DiscordBotRouter(discordToken)
             { Logger = logger };
+
+            Logger = logger;
 
             SetupRoutes();
             return Task.CompletedTask;
@@ -136,6 +140,9 @@ namespace PaTransmitter.Code.Transport
             {
                 if (node.Option == NodeOption.Read)
                     return;
+                
+                Logger.LogInformation("[Discord-message] [{Username}] {Content} [in] {Name}",
+                    discordMessage.Author.Username, discordMessage.Content, discordMessage.Channel.Name);
 
                 TransmitDiscordToDiscords(node, discordMessage);
 

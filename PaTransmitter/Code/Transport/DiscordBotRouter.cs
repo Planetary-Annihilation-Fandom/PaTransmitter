@@ -91,10 +91,7 @@ namespace PaTransmitter.Code.Transport
             // if message is command
             if (msg.Content[0] == '!')
                 return Task.CompletedTask;
-            
-            Logger.LogInformation("[Discord-message] [{Username}] {Content} [in] {Name}",
-                msg.Author.Username, msg.Content, msg.Channel.Name);
-            
+
             Received(msg);
             return Task.CompletedTask;
         }

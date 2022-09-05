@@ -207,11 +207,8 @@ namespace PaTransmitter.Code.Transport
                 ReceivedFromAdministration(package, ulong.Parse(message.TargetUserId));
                 return;
             }
-            //
-            // Logger.LogInformation("Discord: [{Username}] {Content} [in] {Name}",
-            //     msg.Author.Username, msg.Content, msg.Channel.Name);
 
-            Logger.LogInformation("Discord: [{Username}] {Content} [in] {Name}",
+            Logger.LogInformation("[Pachat-message]: [{Username}] {Content} [in] {Name}",
                 message.PlayerName, message.Text, "global");
             
             Received(Package.CreatePackage(Package.Origins.GameChat, message.ChannelName,
